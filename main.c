@@ -6,6 +6,8 @@
 #define AR_ACTIVES "ActiveClients.dat"
 #define AR_INACTIVES"InnactiveClients.dat"
 
+#define DIM 50
+
 typedef struct
 {
     char calle[25];
@@ -21,16 +23,24 @@ typedef struct
     long dni;
     char apellido[30];
     long nroTelefono;
+    int alta;
     dir direccion;
 
 } cliente;
 
 void mainMenu();
-cliente addClient();
+void menuClientes();
+int generateID(int id);
+cliente addCliente();
+void guardarClienteEnArchivo(cliente c);
+void printCliente(cliente c);
+void intercambiaClientes(cliente *a, cliente *b);
+int clientesActivos(cliente activos[], int dimension);
+
 
 int main()
 {
-    int option;
+    int option, cantidad;
     char continuar;
 
     cliente clientes[100];
@@ -51,32 +61,51 @@ int main()
 
         switch(option)
         {
-        case 'a':
+        case 'a':       //agregar cliente
             do
             {
                 system("cls");
-                addClient();
+                addCliente();
                 printf("\nDesea cargar otro cliente? s/n\n");
                 fflush(stdin);
                 scanf("%c", &continuar);
             }
             while (continuar == 's');
 
-        case 'b':
+        case 'b':  //baja de cliente
             do
             {
                 system("cls");
                 bajaCliente();
-
-                system("pause");
-                printf("\nDesea continuar BAJA DE CLIENTE? s/n\n");
+                printf("\nDesea dar de baja otro cliente? s/n\n");
                 fflush(stdin);
                 scanf("%c", &continuar);
-
-
             }
             while (continuar == 's');
 
+        case 'd': /// LISTAR CLIENTES ACTIVOS
+            do
+            {
+                system("cls");
+                printf("\t[ 1 ] - Mostrar clientes ordenados por DNI");
+                printf("\n\n\t[ 2 ] - Mostrar todos los clientes ordenados por Apellido");
+                printf("\n\n\t[ 3 ] - Buscar un cliente en particular y mostrarlo");
+
+                option = getch();
+
+                switch (option)
+                {
+                case '1': /// MOSTRAR CLIENTES ORDENADOS POR DNI.
+
+                    cantidad = clientesActivos(clientes, DIM);
+                    ordenarClientePorDni(clientes, cantidad);
+                    muestraClientes(clientes, cantidad);
+
+                    break;
+
+                }
+            }
+            while (continuar == 's');
             break;
         }
 
@@ -89,8 +118,6 @@ int main()
 
 void mainMenu()
 {
-
-
     printf("\n\t|-------------------------------|");
     printf("\n\t|\tMENU PRINCIPAL  \t|");
     printf("\n\t|-------------------------------|");
@@ -98,7 +125,6 @@ void mainMenu()
     printf("\n\t|-------------------------------|");
     printf("\n\t|\t[ 2 ] - CONSUMO.\t|");
     printf("\n\t|-------------------------------|\n");
-
 }
 
 void menuClientes()
@@ -108,23 +134,23 @@ void menuClientes()
     printf("\n\n\t[ c ] - Modificacion.");
     printf("\n\n\t[ d ] - Lista de clientes activos.");
     printf("\n\n\t[ e ] - Listas de clientes inactivos.");
-
 }
 
-int generateID()
+int generateID(int id)
 {
-    int idCliente = 0;
+    int idCliente = id + 1;
 }
 
-cliente addClient()
+cliente addCliente()
 {
     cliente c;
+    int id = 0000;
 
     printf("**** ALTA CLIENTE ****");
     printf("\n\n");
     printf("*ID CLIENTE: ");
 
-    c.idCliente = generateID();
+    c.idCliente = generateID(id);
 
     printf("\n\n*NOMBRE: ");
     fflush(stdin);
@@ -150,12 +176,16 @@ cliente addClient()
     fflush(stdin);
     scanf("%l", &c.nroTelefono);
 
-    saveClientToFile(c);
+    c.alta = 1;
+
+    guardarClienteEnArchivo(c);
+
+    id ++;
 
     return c;
 }
 
-void saveClientToFile(cliente c)
+void guardarClienteEnArchivo(cliente c)
 {
     FILE *archClient = fopen(AR_CLIENTS,"ab");
     if(archClient != NULL)
@@ -174,7 +204,7 @@ void cargaArchivoClientes(cliente clientes[])
     {
         system("cls");
         printf("\n Carga de Clientes \n");
-        c = addClient();			/// reutiliza la función de cargar cliente
+        c = addCliente();			/// reutiliza la función de cargar cliente
 //        c.id = buscaUltimoId() + 1;			/// le asigna el ultimo id+1 al nuevo cliente
         //     guardaUnCliente(c);			/// lo guarda en el archivo
 
@@ -184,45 +214,16 @@ void cargaArchivoClientes(cliente clientes[])
     }
 }
 
-void bajaCliente()
-{
-    cliente aux;
-    char apellido[20];
-    char continuar;
-
-    printf("\n\tIngrese el apellido a buscar:\n");
-    fflush(stdin);
-    scanf("%s", &apellido);
-
-    aux = buscarClientePorApellido(apellido);
-
-    if (aux.id != -1){
-        printf("\nEl cliente existe en el archivo\n");
-        muestraUnCliente(aux);
-    } else{
-        printf("\nEl cliente no existe en el archivo\n");
-    }
-
-    printf("\nDesea dar de baja al cliente? s/n \n");
-    fflush(stdin);
-    scanf("%c", &continuar);
-
-    if (continuar == 's'){
-        aux.baja = 2;
-    }
-    guardaUnCliente(aux);
-}
-
 cliente buscarClientePorApellido(char apellido[]) 	/// recibe como parámetro el apellido a buscar
 {
     cliente c;
     int flag=0;
 
-    FILE *archClient = fopen(AR_CLIENTES,"rb");	/// abre el archivo en modo binario para operaciones de lectura
+    FILE *archClient = fopen(AR_CLIENTS,"rb");	/// abre el archivo en modo binario para operaciones de lectura
 
     if(archClient) 					/// verifica si abrió sin errores.
     {
-        while( flag == 0 && fread(&c, sizeof(stCliente), 1, archClient) > 0)
+        while( flag == 0 && fread(&c, sizeof(cliente), 1, archClient) > 0)
         {
             if(strcmpi(c.apellido, apellido) == 0)
             {
@@ -239,6 +240,121 @@ cliente buscarClientePorApellido(char apellido[]) 	/// recibe como parámetro el 
 
     return c;
 }
+
+void printCliente(cliente c)
+{
+    printf("\n  -----------------------------------------------------------------");
+    printf("\n  ID: %d", c.idCliente);
+    printf("\n  NOMBRE: %s", c.nombre);
+    printf("\n  APELLIDO: %s", c.apellido);
+    printf("\n  D.N.I.: %d", c.dni);
+    printf("\n  DOMICILIO");
+    printf("\n  -- CALLE: %s", c.direccion.calle);
+    printf("\n  TEL%cFONO %l", 163, c.nroTelefono);
+    printf("\n  -----------------------------------------------------------------");
+}
+
+void bajaCliente()
+{
+    cliente aux;
+    char apellido[20];
+    char continuar;
+
+    printf("\n\tIngrese el apellido a buscar: ");
+    fflush(stdin);
+    scanf("%s", &apellido);
+
+    aux = buscarClientePorApellido(apellido);
+
+    if (aux.idCliente != -1)
+    {
+        printf("\nEl cliente existe en el archivo\n");
+        printCliente(aux);
+        printf("\nDesea dar de baja al cliente? s/n \n");
+        fflush(stdin);
+        scanf("%c", &continuar);
+    }
+    else
+    {
+        printf("\nERROR: El cliente no existe en el archivo\n");
+    }
+
+
+
+    if (continuar == 's')
+    {
+        aux.alta = 0;
+    }
+    guardarClienteEnArchivo(aux);
+}
+
+int clientesActivos(cliente activos[], int dimension)
+{
+    cliente cl;
+    int i=0;
+    FILE *archClient = fopen(AR_CLIENTS, "rb");
+    if(archClient)
+    {
+        while(fread(&cl, sizeof(cliente), 1, archClient) > 0)
+        {
+            if(cl.alta==1)
+            {
+                cl = activos[i];
+                i++;
+            }
+        }
+        fclose(archClient);
+    }
+    return i;
+}
+
+int buscaPosMenorDni(cliente c[], int v, int inicio)
+{
+    int posMenor = inicio;
+    int i = inicio + 1;
+    while(i<v)
+    {
+        if(c[i].dni < c[posMenor].dni)
+        {
+            posMenor=i;
+        }
+        i++;
+    }
+    return posMenor;
+}
+
+void intercambiaClientes(cliente *a, cliente *b){
+    cliente aux;
+    aux=*a;
+    *a=*b;
+    *b=aux;
+}
+
+void ordenarClientePorDni(cliente c[], int v)
+{
+    int posMenor;
+    int i=0;
+
+    while(i<v-1)
+    {
+        posMenor=buscaPosMenorDni(c,v,i);
+        intercambiaClientes(&c[i],&c[posMenor]);
+        i++;
+    }
+}
+
+void muestraClientes(cliente c[], int v)
+{
+    printf("\n\tListado de Clientes");
+    for(int i=0; i<v; i++)
+    {
+        printCliente(c[i]);
+    }
+    printf("\n");
+}
+
+
+
 
 
 
