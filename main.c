@@ -36,6 +36,7 @@ void guardarClienteEnArchivo(cliente c);
 void printCliente(cliente c);
 void intercambiaClientes(cliente *a, cliente *b);
 int clientesActivos(cliente activos[], int dimension);
+void ordPorSelApellido(cliente c[], int v);
 
 
 int main()
@@ -102,8 +103,12 @@ int main()
                     muestraClientes(clientes, cantidad);
 
                     break;
-
                 }
+
+                case '2':
+                    cantidad = clientesActivos(clientes, DIM);
+                    ordPorSelApellido(clientes, cantidad);
+                    muestraClientes(clientes, cantidad);
             }
             while (continuar == 's');
             break;
@@ -194,6 +199,7 @@ void guardarClienteEnArchivo(cliente c)
         fclose(archClient);
     }
 }
+/*
 void cargaArchivoClientes(cliente clientes[])
 {
 
@@ -205,14 +211,12 @@ void cargaArchivoClientes(cliente clientes[])
         system("cls");
         printf("\n Carga de Clientes \n");
         c = addCliente();			/// reutiliza la función de cargar cliente
-//        c.id = buscaUltimoId() + 1;			/// le asigna el ultimo id+1 al nuevo cliente
-        //     guardaUnCliente(c);			/// lo guarda en el archivo
 
         printf("\nDesea continuar con la carga? s/n \n");
         fflush(stdin);
         scanf("%c", &continuar);
     }
-}
+}*/
 
 cliente buscarClientePorApellido(char apellido[]) 	/// recibe como parámetro el apellido a buscar
 {
@@ -323,7 +327,8 @@ int buscaPosMenorDni(cliente c[], int v, int inicio)
     return posMenor;
 }
 
-void intercambiaClientes(cliente *a, cliente *b){
+void intercambiaClientes(cliente *a, cliente *b)
+{
     cliente aux;
     aux=*a;
     *a=*b;
@@ -353,7 +358,32 @@ void muestraClientes(cliente c[], int v)
     printf("\n");
 }
 
+int buscaPosMenorApellido(cliente c[], int v, int inicio)
+{
+    int posMenor = inicio;
+    int i = inicio + 1;
+    while(i<v){
+        if(strcmp(c[i].apellido,c[posMenor].apellido)<0){
+            posMenor=i;
+        }
+        i++;
+    }
+    return posMenor;
+}
 
+
+void ordPorSelApellido(cliente c[], int v)
+{
+    int posMenor;
+    int i=0;
+
+    while(i<v-1)
+    {
+        posMenor=buscaPosMenorApellido(c,v,i);
+        intercambiaClientes(&c[i],&c[posMenor]);
+        i++;
+    }
+}
 
 
 
