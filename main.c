@@ -42,13 +42,15 @@ void menuListaClientes();
 int generateID();
 int ultimoId();
 cliente altaCliente();
-void bajaCliente();
+cliente modificarCliente(cliente c);
+void bajaCliente(cliente c);
+void reactivarCliente(cliente c);
 int verificaCliente (int dni);
 void guardarClienteEnArchivo(cliente c);
 cliente buscarClientePorApellido(char apellido[]);
 void printCliente(cliente c);
 int cargarArregloClientesActivos(cliente clientesActivos[], int dim);
-void mostrarActivos(cliente clientesActivos[], int validos);
+void mostrarArregloClientes(cliente clientesActivos[], int validos);
 void intercambiaClientes(cliente *a, cliente *b);
 void ordPorSelApellido(cliente c[], int v);
 
@@ -56,7 +58,7 @@ void ordPorSelApellido(cliente c[], int v);
 int main()
 {
     int option, cantidad, usuarioValido;
-    char continuar;
+    char continuar,aceptar;
 
     cliente c, clienteAux;
     cliente clientes[100];
@@ -128,23 +130,42 @@ int main()
 
             switch(option)
             {
-            case '1':
+                case '1':   ///// ALTA MANUAL ///////
                 system("cls");
                 altaCliente();
                 printf("\nDesea cargar otro cliente? s/n\n");
                 fflush(stdin);
                 scanf("%c", &continuar);
+                break;
+
+            case '2':   ///// REACTIVAR CLIENTE ///////
+                system("cls");
+                printf("\nIngrese apellido del cliente: ");
+                fflush(stdin);
+                scanf("%s", &apellido);
+
+                clienteAux = buscarClientePorApellido(apellido);
+                printCliente(clienteAux);
+
+                printf("\nDesea dar de alta el cliente? s/n\n");
+                scanf("%c", &aceptar);
+
+                if(aceptar == 's' || aceptar == 'S')
+                {
+                    reactivarCliente(clienteAux);
+                    printf("\nCLIENTE REACTIVADO CON %cXITO", 133);
+                }
             }
 
+
+            }
+                while (continuar == 's');
         default:
             printf("\n\t|---------------------------------|");
             printf("\n\t|  *** ERROR: OPCION INVALIDA *** |");
             printf("\n\t|---------------------------------|\n");
             system("pause");
-            option = 'S';
-            mainMenu();
-        }
-        while (continuar == 's');
+            break;
 
 
 
@@ -152,14 +173,29 @@ int main()
         do
         {
             system("cls");
-            bajaCliente();
-            printf("\nDesea dar de baja otro cliente? s/n\n");
+            printf("\nIngrese apellido del cliente: ");
             fflush(stdin);
+            scanf("%s", &apellido);
+
+            clienteAux = buscarClientePorApellido(apellido);
+            printCliente(clienteAux);
+
+            printf("\nDesea dar de baja el cliente? s/n\n");
+            fflush(stdin);
+            scanf("%c", &aceptar);
+
+            if(aceptar == 's' || aceptar == 'S')
+            {
+                bajaCliente(clienteAux);
+                printf("\nCLIENTE MODIFICADO CON %cXITO", 133);
+            }
+
+            printf("\nDesea dar de baja otro cliente? s/n\n");
             scanf("%c", &continuar);
+
         }
         while (continuar == 's');
 
-        break;
 
     case 'c': //// MODIFICACIÓN DE CLIENTE /////
         do
@@ -170,21 +206,14 @@ int main()
             scanf("%s", &apellido);
             clienteAux = buscarClientePorApellido(apellido);
             printCliente(clienteAux);
-            menuModificarCliente();
-            option = getch();
-
-            switch(option)
-            {
-            case '1':
-                system("cls");
-
-            }
+            modificarCliente(clienteAux);
+            overwriteCliente(clienteAux);
         }
         while (continuar == 's');
 
         break;
 
-    case 'd' : /////// LISTA DE CLIENTES ACTIVOS ////////
+    case 'd' : /////// LISTA DE CLIENTES ////////
         do
         {
             system("cls");
@@ -194,15 +223,7 @@ int main()
 
             switch (option)
             {
-            case '1': /////// MOSTRAR CLIENTES ORDENADOS POR APELLIDO, NOMBRE ///////
-
-
-                ordenarClientePorDni(clientes, cantidad);
-                muestraClientes(clientes, cantidad);
-
-                break;
-
-            case '2': /////// BUSCAR UN CLIENTE ///////
+            case '1': /////// BUSCAR UN CLIENTE ///////
                 system("cls");
                 printf("Ingrese apellido: ");
                 fflush(stdin);
@@ -210,10 +231,19 @@ int main()
                 clienteAux = buscarClientePorApellido(apellido);
                 printCliente(clienteAux);
 
+                break;
 
-            case '3': /////// MOSTRAR CLIENTES ACTIVOS ///////
+            case '2': /////// MOSTRAR CLIENTES ACTIVOS ///////
                 cantidad = cargarArregloClientesActivos(clientesActivos, 100);
-                mostrarActivos(clientesActivos, cantidad);
+                mostrarArregloClientes(clientesActivos, cantidad);
+                printf("\nDesea VOLVER AL MENU PRINCIPAL? s/n\n");
+                option = getch();
+
+                break;
+
+            case '3': /////// MOSTRAR CLIENTES INACTIVOS ///////
+                cantidad = cargarArregloClientesInactivos(clientesActivos, 100);
+                mostrarArregloClientes(clientesActivos, cantidad);
                 printf("\nDesea VOLVER AL MENU PRINCIPAL? s/n\n");
                 option = getch();
             }
@@ -324,7 +354,7 @@ void menuClientes()
     printf("\n\t|-----------------------------------------------------------------|");
     printf("\n\t|                    [c] - Modificaci%cn.                          |",162);
     printf("\n\t|-----------------------------------------------------------------|");
-    printf("\n\t|                    [d] - Lista de clientes activos.             |");
+    printf("\n\t|                    [d] - Lista de clientes.                     |");
     printf("\n\t|-----------------------------------------------------------------|");
 }
 
@@ -367,11 +397,11 @@ void menuListaClientes()
     printf("\n\t|-----------------------------------------------------------------|");
     printf("\n\t|************************ LISTA DE CLIENTES **********************|");
     printf("\n\t|-----------------------------------------------------------------|");
-    printf("\n\t| [1] - Mostrar clientes activos en formato 'Apellido, Nombre'    |");
+    printf("\n\t| [1] - Buscar un cliente                                         |");
     printf("\n\t|-----------------------------------------------------------------|");
-    printf("\n\t| [2] - Buscar un cliente                                         |");
+    printf("\n\t| [2] - Ver lista de clientes activos                             |");
     printf("\n\t|-----------------------------------------------------------------|");
-    printf("\n\t| [3] - Ver listado completo de clientes (activos e inactivos)    |");
+    printf("\n\t| [3] - Ver lista de clientes inactivos                           |");
     printf("\n\t|-----------------------------------------------------------------|");
 }
 
@@ -424,6 +454,7 @@ int ultimoId()
 cliente altaCliente()
 {
     cliente c;
+    int valido = 0;
     c.idCliente = ultimoId() + 1;
 
     printf("\n\t|---------------------------------|");
@@ -460,8 +491,18 @@ cliente altaCliente()
     fflush(stdin);
     scanf("%s", &c.nroTelefono);
 
-    guardarClienteEnArchivo(c);
+    valido = verificaCliente(c.dni);
 
+    if(valido = 1)
+    {
+        guardarClienteEnArchivo(c);
+
+        printf("\n\nEl cliente se ha guardado exitosamente!");
+    }
+    else
+    {
+        printf("\n\nERROR: EL CLIENTE YA SE ENCUENTRA REGISTRADO");
+    }
     c.alta = 1;
 
     return c;
@@ -530,39 +571,16 @@ void printCliente(cliente c)
     printf("\n\t-----------------------------------------------------------------");
 }
 
-void bajaCliente()
+void bajaCliente(cliente c)
 {
-    cliente aux;
-    char apellido[20];
-    char continuar;
+    c.alta = 0;
+    overwriteCliente(c);
+}
 
-    printf("\n\t|---------------------------------|");
-    printf("\n\t|     **** BUSCAR CLIENTE ****    |");
-    printf("\n\t|---------------------------------|\n");
-    printf("\n\t* Ingrese apellido: ");
-    fflush(stdin);
-    scanf("%s", &apellido);
-
-    aux = buscarClientePorApellido(apellido);
-
-    if (aux.idCliente != -1)
-    {
-        printf("\nEl cliente existe en el archivo\n");
-        printCliente(aux);
-        printf("\nDesea dar de baja al cliente? s/n \n");
-        fflush(stdin);
-        scanf("%c", &continuar);
-    }
-    else
-    {
-        printf("\nERROR: El cliente no existe en el archivo\n");
-    }
-
-    if (continuar == 's')
-    {
-        aux.alta = 0;
-    }
-    guardarClienteEnArchivo(aux);
+void reactivarCliente(cliente c)
+{
+    c.alta = 1;
+    overwriteCliente(c);
 }
 
 int verificaCliente (int dni)    /// recibe como parámetro el dni
@@ -695,14 +713,14 @@ int cargarArregloClientesActivos(cliente clientesActivos[], int dim)
     return i;   //// CLIENTES ACTIVOS VALIDOS
 }
 
-void mostrarActivos(cliente clientesActivos[], int validos)
+void mostrarArregloClientes(cliente c[], int validos)
 {
     int i = 0;
 
     for(i=0; i<validos; i++)
     {
         printf("\n\t-----------------------------------------------------------------");
-        printf("\n\t %s", clientesActivos[i]);
+        printf("\n\t %s", c[i]);
         printf("\n\t-----------------------------------------------------------------");
     }
 }
@@ -713,57 +731,108 @@ cliente modificarCliente(cliente c)
     char continuar;
     cliente d;
     menuModificarCliente();
-    scanf("%d", &option);
+    printf("\n\n\tSELECCIONE UNA OPCION: ");
+    option = getch();
+    printf("\n");
 
-    do {
-        switch (option){
-        case 1:
-            printf("\n*INGRESE NUEVO NOMBRE: ");
-            fflush(stdin);
-            scanf("%s", &d.nombre);
-            strcpy(c.nombre, d.nombre);
-            break;
-        case 2:
-            printf("\n*INGRESE NUEVO APELLIDO: ");
-            fflush(stdin);
-            scanf("%s", &d.apellido);
-            strcpy(c.apellido, d.apellido);
-            break;
-        case 3:
-            printf("\n*INGRESE NUEVO DNI: ");
-            fflush(stdin);
-            scanf("%ld", &d.dni);
-            c.dni = d.dni;
-            break;
-        case 4:
-            printf("\n*INGRESE NUEVO EMAIL: ");
-            fflush(stdin);
-            scanf("%s", &d.email);
-            strcpy(c.email, d.email);
-            break;
-        case 5:
-            printf("\n*INGRESE NUEVO DOMICILIO");
-            printf("\n**CALLE: ");
-            scanf("%s", &d.direccion.calle);
-            printf("\n**NUMERO: ");
-            scanf("%d", &d.direccion.numero);
-            strcpy(c.direccion.calle, d.direccion.calle);
-            c.direccion.numero = d.direccion.numero;
-            break;
-        case 6:
-            printf("\n*INGRESE NUEVO TEL%cFONO:",144);
-            fflush(stdin);
-            scanf("%s", &d.nroTelefono);
-            strcpy(c.nroTelefono, d.nroTelefono);
-            break;
-        }
+    switch (option)
+    {
+    case '1':
+        printf("\n*INGRESE NUEVO NOMBRE: ");
+        fflush(stdin);
+        scanf("%s", &d.nombre);
+        strcpy(c.nombre, d.nombre);
+        break;
+    case '2':
+        printf("\n*INGRESE NUEVO APELLIDO: ");
+        fflush(stdin);
+        scanf("%s", &d.apellido);
+        strcpy(c.apellido, d.apellido);
+        break;
+    case '3':
+        printf("\n*INGRESE NUEVO DNI: ");
+        fflush(stdin);
+        scanf("%ld", &d.dni);
+        c.dni = d.dni;
+        break;
+    case '4':
+        printf("\n*INGRESE NUEVO EMAIL: ");
+        fflush(stdin);
+        scanf("%s", &d.email);
+        strcpy(c.email, d.email);
+        break;
+    case '5':
+        printf("\n*INGRESE NUEVO DOMICILIO");
+        printf("\n**CALLE: ");
+        scanf("%s", &d.direccion.calle);
+        printf("\n**NUMERO: ");
+        scanf("%d", &d.direccion.numero);
+        strcpy(c.direccion.calle, d.direccion.calle);
+        c.direccion.numero = d.direccion.numero;
+        break;
+    case '6':
+        printf("\n*INGRESE NUEVO TEL%cFONO:",144);
+        fflush(stdin);
+        scanf("%s", &d.nroTelefono);
+        strcpy(c.nroTelefono, d.nroTelefono);
+        break;
+    }
 
-    system("pause");
-    printf("\nDesea continuar? s/n\n");
+    printf("\nCLIENTE MODIFICADO CON %cXITO\n", 144);
     fflush(stdin);
-    scanf("%c", &continuar);
-
-    } while (continuar == 's');
 
     return c;
+}
+
+void overwriteCliente(cliente c)
+{
+    int pos = 0;
+    pos = buscaPosCliente(c.idCliente);
+    FILE *archClient = fopen(AR_CLIENTS, "r+b");
+    if(archClient)
+    {
+        fseek(archClient, sizeof(cliente)*pos, SEEK_SET);
+        fwrite(&c, sizeof(cliente), 1, archClient);
+        fclose(archClient);
+    }
+}
+
+int buscaPosCliente(int id)
+{
+    int pos = -1;
+    cliente c;
+    FILE *archClient = fopen(AR_CLIENTS, "rb");
+    if(archClient)
+    {
+        while(pos == -1 && fread(&c, sizeof(cliente), 1, archClient)>0)
+        {
+            if(c.idCliente == id)
+            {
+                pos = ftell(archClient)/sizeof(cliente)-1;
+            }
+        }
+        fclose(archClient);
+    }
+    return pos;
+}
+
+int cargarArregloClientesInactivos(cliente inactivos[], int dimension)
+{
+    cliente c;
+    int i=0;
+
+    FILE *archClient = fopen(AR_CLIENTS, "rb");
+    if(archClient!=NULL)
+    {
+        while(fread(&c, sizeof(cliente), 1, archClient) > 0)
+        {
+            if(c.alta==0)
+            {
+                inactivos[i] = c;
+                i++;
+            }
+        }
+        fclose(archClient);
+    }
+    return i; /// VALIDOS CLIENTES INACTIVOS
 }
