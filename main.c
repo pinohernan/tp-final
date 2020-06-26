@@ -3,8 +3,6 @@
 #include <string.h>
 
 #define AR_CLIENTS "Clients.dat"
-#define AR_ACTIVES "ActiveClients.dat"
-#define AR_INACTIVES"InnactiveClients.dat"
 
 #define DIM 50
 
@@ -39,30 +37,31 @@ void menuAddUser(cliente c);
 void altaUsuario(cliente c);
 void menuAltaCliente();
 void menuListaClientes();
-int generateID();
-int ultimoId();
-cliente altaCliente();
-cliente modificarCliente(cliente c);
 void bajaCliente(cliente c);
 void reactivarCliente(cliente c);
-int verificaCliente (int dni);
 void guardarClienteEnArchivo(cliente c);
-cliente buscarClientePorApellido(char apellido[]);
 void printCliente(cliente c);
-int cargarArregloClientesActivos(cliente clientesActivos[], int dim);
 void mostrarArregloClientes(cliente clientesActivos[], int validos);
-void intercambiaClientes(cliente *a, cliente *b);
-void ordPorSelApellido(cliente c[], int v);
+int generateID();
+int ultimoId();
+int verificaCliente(long dni);
+int cargarArregloClientesActivos(cliente clientesActivos[]);
+int cargarArregloClientesActivos(cliente clientesInactivos[]);
+cliente altaCliente();
+cliente modificarCliente(cliente c);
+cliente buscarClientePorApellido(char apellido[]);
+cliente buscarClientePorID(int id);
 
 
 int main()
 {
-    int option, cantidad, usuarioValido;
+    int option, cantidad, usuarioValido,id;
     char continuar,aceptar;
 
     cliente c, clienteAux;
     cliente clientes[100];
     cliente clientesActivos[100];
+    cliente clientesInactivos[100];
     char apellido[30];
     char mail[30];
     char contrasenia[10];
@@ -130,7 +129,7 @@ int main()
 
             switch(option)
             {
-                case '1':   ///// ALTA MANUAL ///////
+            case '1':   ///// ALTA MANUAL ///////
                 system("cls");
                 altaCliente();
                 printf("\nDesea cargar otro cliente? s/n\n");
@@ -148,7 +147,7 @@ int main()
                 printCliente(clienteAux);
 
                 printf("\nDesea dar de alta el cliente? s/n\n");
-                scanf("%c", &aceptar);
+                aceptar = getch();
 
                 if(aceptar == 's' || aceptar == 'S')
                 {
@@ -158,14 +157,14 @@ int main()
             }
 
 
-            }
-                while (continuar == 's');
-        default:
-            printf("\n\t|---------------------------------|");
-            printf("\n\t|  *** ERROR: OPCION INVALIDA *** |");
-            printf("\n\t|---------------------------------|\n");
-            system("pause");
-            break;
+        }
+        while (continuar == 's');
+    /*default:
+        printf("\n\t|---------------------------------|");
+        printf("\n\t|  *** ERROR: OPCION INVALIDA *** |");
+        printf("\n\t|---------------------------------|\n");
+        system("pause");
+        break;*/
 
 
 
@@ -201,10 +200,10 @@ int main()
         do
         {
             system("cls");
-            printf("\nIngrese apellido del cliente: ");
+            printf("\nIngrese ID del cliente: ");
             fflush(stdin);
-            scanf("%s", &apellido);
-            clienteAux = buscarClientePorApellido(apellido);
+            scanf("%d", &id);
+            clienteAux = buscarClientePorID(id);
             printCliente(clienteAux);
             modificarCliente(clienteAux);
             overwriteCliente(clienteAux);
@@ -234,7 +233,7 @@ int main()
                 break;
 
             case '2': /////// MOSTRAR CLIENTES ACTIVOS ///////
-                cantidad = cargarArregloClientesActivos(clientesActivos, 100);
+                cantidad = cargarArregloClientesActivos(clientesActivos);
                 mostrarArregloClientes(clientesActivos, cantidad);
                 printf("\nDesea VOLVER AL MENU PRINCIPAL? s/n\n");
                 option = getch();
@@ -242,8 +241,8 @@ int main()
                 break;
 
             case '3': /////// MOSTRAR CLIENTES INACTIVOS ///////
-                cantidad = cargarArregloClientesInactivos(clientesActivos, 100);
-                mostrarArregloClientes(clientesActivos, cantidad);
+                cantidad = cargarArregloClientesInactivos(clientesInactivos);
+                mostrarArregloClientes(clientesInactivos, cantidad);
                 printf("\nDesea VOLVER AL MENU PRINCIPAL? s/n\n");
                 option = getch();
             }
@@ -493,17 +492,17 @@ cliente altaCliente()
 
     valido = verificaCliente(c.dni);
 
-    if(valido = 1)
+    if(valido == 1)
     {
         guardarClienteEnArchivo(c);
-
+        c.alta = 1;
         printf("\n\nEl cliente se ha guardado exitosamente!");
     }
     else
     {
         printf("\n\nERROR: EL CLIENTE YA SE ENCUENTRA REGISTRADO");
     }
-    c.alta = 1;
+
 
     return c;
 }
@@ -551,6 +550,34 @@ cliente buscarClientePorApellido(char apellido[])
     return c;
 }
 
+cliente buscarClientePorID(int id)
+{
+    int flag=0;
+    cliente c,aux;
+
+    FILE *archClient = fopen(AR_CLIENTS,"rb");
+
+    if(archClient)
+    {
+        while(flag == 0 && fread(&c, sizeof(cliente), 1, archClient) > 0)
+        {
+            if(c.idCliente == id)
+            {
+                aux = c;
+            }
+        }
+        fclose(archClient);
+    }
+
+    if(flag==0)
+    {
+        c.idCliente = -1;
+    }
+
+    return c;
+}
+
+
 void printCliente(cliente c)
 {
 
@@ -569,6 +596,16 @@ void printCliente(cliente c)
     printf("\n\t-----------------------------------------------------------------");
     printf("\n\t *TEL%cFONO: %s", 144, c.nroTelefono);
     printf("\n\t-----------------------------------------------------------------");
+    if(c.alta == 1)
+    {
+        printf("\n\t *ESTADO: ACTIVO");
+        printf("\n\t-----------------------------------------------------------------");
+    }
+    else
+    {
+        printf("\n\t *ESTADO: INACTIVO");
+        printf("\n\t-----------------------------------------------------------------");
+    }
 }
 
 void bajaCliente(cliente c)
@@ -583,7 +620,7 @@ void reactivarCliente(cliente c)
     overwriteCliente(c);
 }
 
-int verificaCliente (int dni)    /// recibe como parámetro el dni
+int verificaCliente (long dni)    /// recibe como parámetro el dni
 {
     int flag=0;
     cliente c;
@@ -687,41 +724,39 @@ void mostrarClientes()
     }
 }
 
-
-int cargarArregloClientesActivos(cliente clientesActivos[], int dim)
-{
-    FILE * archClient = fopen(AR_CLIENTS, "rb");
-    cliente c;
-
-    int i=0;
-
-    if(archClient!=NULL)
-    {
-
-        while(fread(&c,sizeof(cliente), 1, archClient)>0 && i<dim )
-        {
-            if(c.alta = 1)
-            {
-                clientesActivos[i] = c;
-                i++;
-            }
-        }
-
-        fclose(archClient);
-    }
-
-    return i;   //// CLIENTES ACTIVOS VALIDOS
-}
-
 void mostrarArregloClientes(cliente c[], int validos)
 {
     int i = 0;
-
+    int condicion = 0;
     for(i=0; i<validos; i++)
     {
+
+        printf("\n\n");
         printf("\n\t-----------------------------------------------------------------");
-        printf("\n\t %s", c[i]);
+        printf("\n\t *ID: %d", c[i].idCliente);
         printf("\n\t-----------------------------------------------------------------");
+        printf("\n\t *NOMBRE: %s", c[i].nombre);
+        printf("\n\t-----------------------------------------------------------------");
+        printf("\n\t *APELLIDO: %s", c[i].apellido);
+        printf("\n\t-----------------------------------------------------------------");
+        printf("\n\t *D.N.I.: %ld", c[i].dni);
+        printf("\n\t-----------------------------------------------------------------");
+        printf("\n\t *DOMICILIO %s %d", c[i].direccion.calle, c[i].direccion.numero);
+        printf("\n\t-----------------------------------------------------------------");
+        printf("\n\t *EMAIL: %s", c[i].email);
+        printf("\n\t-----------------------------------------------------------------");
+        printf("\n\t *TEL%cFONO: %s", 144, c[i].nroTelefono);
+        printf("\n\t-----------------------------------------------------------------");
+        if(c[i].alta == 1)
+        {
+            printf("\n\t *ESTADO: ACTIVO");
+            printf("\n\t-----------------------------------------------------------------");
+        }
+        else
+        {
+            printf("\n\t *ESTADO: INACTIVO");
+            printf("\n\t-----------------------------------------------------------------");
+        }
     }
 }
 
@@ -816,7 +851,31 @@ int buscaPosCliente(int id)
     return pos;
 }
 
-int cargarArregloClientesInactivos(cliente inactivos[], int dimension)
+int cargarArregloClientesActivos(cliente clientesActivos[])
+{
+    cliente c;
+    int i=0;
+
+    FILE * archClient = fopen(AR_CLIENTS, "rb");
+    if(archClient!=NULL)
+    {
+
+        while(fread(&c,sizeof(cliente), 1, archClient)>0)
+        {
+            if(c.alta == 1)
+            {
+                clientesActivos[i] = c;
+                i++;
+            }
+        }
+
+        fclose(archClient);
+    }
+
+    return i;   //// CLIENTES ACTIVOS VALIDOS
+}
+
+int cargarArregloClientesInactivos(cliente inactivos[])
 {
     cliente c;
     int i=0;
